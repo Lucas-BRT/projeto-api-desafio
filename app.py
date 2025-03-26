@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import sqlite3
 
 app = Flask(__name__)
@@ -19,30 +19,31 @@ init_db()
 
 
 @app.route('/')
-def home_page():
-    return "<h2>Minha página com Flask</h2>"
+def homepage():
+    return render_template('index.html')
 
 
-@app.route('/doar', methods=["POST"])
+@app.route("/doar", methods=['POST'])
 def doar():
 
     dados = request.get_json()
 
-    titulo = dados.get('titulo')
-    categoria = dados.get('categoria')
-    autor = dados.get('autor')
-    imagem_url = dados.get('imagem_url')
+    titulo = dados.get("titulo")
+    categoria = dados.get("categoria")
+    autor = dados.get("autor")
+    imagem_url = dados.get("imagem_url")
 
     if not all([titulo, categoria, autor, imagem_url]):
-        return jsonify({"erro":"Todos os campos devem ser preenchidos"}),400
-    
+
+        return jsonify({'erro': 'Todos os campos são obrigatórios'}), 400
+
     with sqlite3.connect('database.db') as conn:
-        conn.execute(f""" INSERT INTO livros (titulo,categoria,autor,imagem_url)
-                     VALUES(?,?,?,?)
-                     """,(titulo, categoria, autor, imagem_url))
+        conn.execute(""" INSERT INTO livros (titulo,categoria,autor,imagem_url)
+VALUES(?,?,?,?)
+                         """, (titulo, categoria, autor, imagem_url))
         conn.commit()
 
-        return jsonify({"mensagem": "Livros cadastrados com sucesso!"}), 201
+        return jsonify({'mensagem': 'Livros cadastrados com sucesso'}), 201
     
 @app.route('/livros', methods=['GET'])
 def listar_livros():
@@ -60,7 +61,21 @@ def listar_livros():
             "imagem_url": livro[4]
         }
         livros_formatados.append(dicionario_livros)
+
     return jsonify(livros_formatados)
+
+@app.route('/livros/<int:livro_id>', methods=['DELETE'])
+def deletar_livro(livro_id):
+    with sqlite3.connect('database.db') as conn:
+        conexao_cursor = conn.cursor()
+        conexao_cursor.execute("DELETE FROM livros WHERE id = ?", (livro_id,))
+        conn.commit()
+
+    if conexao_cursor.rowcount == 0:
+        return jsonify({"erro": "Livro não encontrado"}), 400
+    
+    return jsonify({"mensagem": "Livro excluído com sucesso"}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

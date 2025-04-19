@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - ./database.db:/app/database.db  # persiste o banco de dados localmente
+    environment:
+      - FLASK_ENV=development
